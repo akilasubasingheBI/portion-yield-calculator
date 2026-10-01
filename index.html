@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Master Production BOM & Portion Yield Calculator</title>
+    <link rel="icon" href="logo.png">
+        <style>
+        html { background: linear-gradient(180deg, #eaf5ff 0%, #f8fbff 50%, #e6f2ff 100%); }
+    body {
+      margin: 0;
+      padding: 20px 16px 40px;
+      max-width: 1000px;
+      margin-inline: auto;
+      font-family: system-ui, "Segoe UI", sans-serif;
+      color: #0f2a4a;
+    }
+
+    /* ===== කොන් හතරේ light blue design ===== */
+        /* ===== කොන් හතරේ soft light-blue glow ===== */
+    html::before, html::after, body::before, body::after {
+      content: "";
+      position: fixed;
+      width: min(420px, 45vw);
+      height: min(420px, 45vw);
+      z-index: -1;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at var(--p), rgba(96, 165, 250, 0.45), rgba(96, 165, 250, 0) 62%),
+        radial-gradient(circle at var(--q), rgba(56, 189, 248, 0.30), rgba(56, 189, 248, 0) 55%);
+    }
+    html::before { top: 0;    left: 0;  --p: 0 0;       --q: 35% 25%; }
+    html::after  { top: 0;    right: 0; --p: 100% 0;    --q: 65% 25%; }
+    body::before { bottom: 0; left: 0;  --p: 0 100%;    --q: 35% 75%; }
+    body::after  { bottom: 0; right: 0; --p: 100% 100%; --q: 65% 75%; }
+
+    h1 {
+      font-size: 26px;
+      margin: 8px 0 18px;
+      background: linear-gradient(90deg, #1d4ed8, #0ea5e9);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .card, .kpi {
+      background: rgba(255, 255, 255, 0.93);
+      border: 1px solid #bfdbfe;
+      border-radius: 14px;
+      box-shadow: 0 4px 16px rgba(59, 130, 246, 0.12);
+    }
+    .card { padding: 16px; transition: transform .2s, box-shadow .2s; }
+    .card:hover { transform: translateY(-3px); box-shadow: 0 10px 26px rgba(59, 130, 246, 0.25); }
+    .card h3 { margin: 0 0 10px; font-size: 16px; color: #1d6fe0; }
+
+    #inputs {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+    label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: #4b6a90;
+      margin: 9px 0;
+    }
+    input {
+      width: 92px;
+      padding: 7px;
+      text-align: right;
+      color: #0f2a4a;
+      font-size: 14px;
+      background: #f0f7ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    input:hover { border-color: #60a5fa; }
+    input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25); }
+
+    #resetBtn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      margin: 14px 0 0;
+      padding: 9px 20px;
+      color: white;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      background: linear-gradient(90deg, #38bdf8, #2563eb);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+      transition: transform .15s, box-shadow .2s;
+    }
+    #resetBtn:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(37, 99, 235, 0.5); }
+    #resetBtn svg { transition: transform .5s; }
+    #resetBtn:hover svg { transform: rotate(-200deg); }
+
+    #kpis {
+      display: grid;
+      gap: 14px;
+      margin: 16px 0;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+    .kpi { padding: 14px; transition: transform .2s; }
+    .kpi:hover { transform: translateY(-3px); }
+    .kpi b { display: block; font-size: 24px; color: #1d6fe0; }
+    .kpi span { font-size: 12px; color: #4b6a90; }
+
+    .wrap { overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 560px; }
+    th, td { padding: 7px 10px; text-align: right; border-bottom: 1px solid #dbeafe; }
+    th:first-child, td:first-child { text-align: left; }
+    th { color: #2563eb; font-weight: 600; }
+    tr:hover td { background: #eff6ff; }
+    .total td { font-weight: 700; color: #1d4ed8; border-top: 2px solid #60a5fa; }
+        /* ===== 2-column layout ===== */
+    body { max-width: 1350px; padding-top: 10px; }
+    h1 { margin: 4px 0 12px; font-size: 24px; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+    #inputs { grid-template-columns: 1fr; gap: 12px; }
+    .card { padding: 12px 16px; }
+    label { margin: 6px 0; }
+    #kpis { margin: 0 0 14px; }
+    .kpi { padding: 10px 14px; }
+    th, td { padding: 5px 10px; }
+
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+        /* Reset button: Chicken Portion card එකේ දකුණු උඩ කොන */
+    .left { position: relative; }
+
+    #resetBtn {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      z-index: 2;
+      width: auto;
+      margin: 0;
+      padding: 5px 12px;
+      font-size: 13px;
+      gap: 5px;
+    }
+    #resetBtn svg { width: 14px; height: 14px; }
+        /* ===== Aligned 2-column layout ===== */
+    .layout {
+      display: grid;
+      grid-template-columns: 320px minmax(0, 1fr);
+      grid-template-rows: auto 1fr;
+      gap: 14px;
+      align-items: stretch;
+    }
+    .left, .right { display: contents; }
+
+    /* පළවෙනි පේළිය: Reset (වම) + KPI cards (දකුණ) */
+    #resetBtn {
+      position: static;
+      grid-column: 1;
+      grid-row: 1;
+      align-self: stretch;
+      justify-content: center;
+      width: 100%;
+      margin: 0;
+      padding: 10px 12px;
+      font-size: 15px;
+    }
+    #resetBtn svg { width: 16px; height: 16px; }
+    #kpis { grid-column: 2; grid-row: 1; margin: 0; }
+
+    /* දෙවෙනි පේළිය: cards 3 (වම) + table (දකුණ), උඩත් යටත් සමානයි */
+    #inputs {
+      grid-column: 1;
+      grid-row: 2;
+      grid-template-rows: repeat(3, 1fr);
+    }
+    .right > .card { grid-column: 2; grid-row: 2; margin: 0 !important; }
+
+    /* Heading එකේ අකුරු කැඩෙන එක නැති කරන්න */
+    h1 {
+      background: none;
+      -webkit-background-clip: initial;
+      background-clip: initial;
+      color: #1d4ed8;
+    }
+
+    /* phone / පොඩි screen */
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; }
+      #resetBtn, #kpis, #inputs, .right > .card { grid-column: 1; grid-row: auto; }
+    }
+        /* Reset button: සාමාන්‍ය ප්‍රමාණය, cards වලට උඩින් දකුණු කෙළවරේ */
+    #resetBtn {
+      width: auto;
+      align-self: center;
+      justify-self: end;
+      padding: 8px 18px;
+      font-size: 14px;
+    }
+        /* number input වල up/down arrows සම්පූර්ණයෙන්ම අයින් කිරීම */
+    input[type="number"] {
+      -webkit-appearance: textfield;
+      -moz-appearance: textfield;
+      appearance: textfield;
+    }
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      appearance: none;
+      margin: 0;
+      display: none;
+    }
+        .ic {
+      display: inline-block;
+      width: 26px;
+      margin-right: 6px;
+      text-align: center;
+      font-size: 15px;
+    }
+        /* ===== Header: logo + company name + title ===== */
+    .top {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin: 0 0 14px;
+    }
+    .logo {
+      height: 58px;
+      width: auto;
+      object-fit: contain;
+    }
+    .company {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: #19024a;
+    }
+    .top h1 { margin: 2px 0 0; }
+        /* Portion cards වල වම් පැත්තේ නිල් පටිය (උඩ සිට පහළට) */
+    #inputs .card {
+      position: relative;
+      overflow: hidden;
+      padding-left: 22px;
+    }
+    #inputs .card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 7px;
+      background: linear-gradient(180deg, #38bdf8, #073eb3);
+    }
+        /* ===== වම් තීරුවේ පිටිපස්සේ shape එක (KPI උඩ සිට table යට දක්වා) ===== */
+    .layout { grid-template-columns: 352px minmax(0, 1fr); }
+
+    .layout::before {
+      content: "";
+      grid-column: 1;
+      grid-row: 1 / span 2;
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(186, 222, 255, 0.75), rgba(219, 234, 254, 0.55));
+      border: 1px solid #93c5fd;
+      box-shadow: 0 6px 22px rgba(59, 130, 246, 0.2);
+    }
+
+    /* shape එක ඇතුලේ Reset button එකයි cards වලටයි ඉඩ */
+    #resetBtn { margin: 12px 14px 0 14px; }
+    #inputs   { margin: 0 14px 14px 14px; }
+
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: minmax(0, 1fr); }
+      .layout::before { display: none; }
+      #resetBtn, #inputs { margin: 0; }
+    }
+        /* ===== දකුණු තීරුවේ පිටිපස්සේ shape එක (KPI cards + table) ===== */
+    .layout { isolation: isolate; }
+
+    .layout::before, .layout::after {
+      z-index: -1;
+    }
+    .layout::after {
+      content: "";
+      grid-column: 2;
+      grid-row: 1 / span 2;
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(186, 222, 255, 0.75), rgba(219, 234, 254, 0.55));
+      border: 1px solid #93c5fd;
+      box-shadow: 0 6px 22px rgba(59, 130, 246, 0.2);
+    }
+
+    /* shape එක ඇතුලේ KPI cards සහ table එකට ඉඩ */
+    #kpis { margin: 12px 14px 0 14px; }
+    .right > .card { margin: 0 14px 14px 14px !important; }
+
+    @media (max-width: 900px) {
+      .layout::after { display: none; }
+      #kpis { margin: 0 0 14px; }
+      .right > .card { margin: 0 !important; }
+    }
+        /* Page එක screen එකේ පළල පුරාම පාවිච්චි කරන්න */
+    body {
+      max-width: none;
+      margin-inline: 0;
+      padding-left: 60px;
+      padding-right: 60px;
+    }
+        /* KPI card: icon වම් පැත්තේ, අගය දකුණු පැත්තේ */
+    .kpi {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .kic {
+      flex: none;
+      width: 46px;
+      height: 46px;
+      display: grid;
+      place-items: center;
+      font-size: 24px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #dbeafe, #bae6fd);
+      border: 1px solid #93c5fd;
+    }
+    .kt { text-align: right; }
+    /* ===== Footer: screen එකේ පළල පුරා, bold සුදු අකුරු, වම සිට දකුණට ගමන් ===== */
+    /* ===== Footer: screen එකේ පළල හරියටම පුරා, කෙළවරින් කෙළවරට ගමන් ===== */
+    body { overflow-x: hidden; }
+
+    .site-footer {
+      position: relative;
+      width: 100vw;
+      left: 50%;
+      margin: 24px 0 -40px -50vw;
+      padding: 13px 0;
+      overflow: hidden;
+      background: linear-gradient(90deg, #0a2a6e, #123f9e, #0a2a6e);
+      border: 0;
+      border-bottom: 4px solid #061a4a;
+      border-radius: 0;
+      box-shadow: none;
+    }
+    .track {
+      display: flex;
+      width: max-content;
+      animation: run-right 10s linear infinite;
+    }
+    .track span {
+      flex: none;
+      padding: 0 48px;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 0.6px;
+      color: #ffffff;
+      white-space: nowrap;
+    }
+    @keyframes run-right {
+      from { transform: translateX(-50%); }
+      to   { transform: translateX(0); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .track { animation: none; }
+    }
+    /* ===== Footer: එක sentence එකක් වමේ සිට දකුණට ===== */
+    .site-footer {
+      height: 32px;
+      padding: 0;
+    }
+    .marquee {
+      position: absolute;
+      top: 0;
+      left: 0;
+      line-height: 32px;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 0.6px;
+      color: #ffffff;
+      white-space: nowrap;
+      animation: marquee-run 18s linear infinite;
+    }
+    @keyframes marquee-run {
+      from { transform: translateX(-100%); }
+      to   { transform: translateX(100vw); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .marquee { animation: none; left: 50%; transform: translateX(-50%); }
+    }
+    /* Footer එක page එකේ යටටම */
+    body {
+      box-sizing: border-box;
+      min-height: 100vh;
+      padding-bottom: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .layout { margin-bottom: 24px; }
+    .site-footer {
+      flex: none;
+      margin: auto 0 20px -50vw;
+    }
+    /* ===== Live time + date (card නැතුව, කළු අකුරු) ===== */
+    /* ===== Live time + date ===== */
+    .clock {
+      margin-left: auto;
+      align-self: flex-start;
+      padding: 0;
+      background: none;
+      border: 0;
+      box-shadow: none;
+    }
+    .clock-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin: 1px 0;
+      font-size: 15px;
+      font-weight: 700;
+      color: #000000;
+      letter-spacing: 0.4px;
+      font-variant-numeric: tabular-nums;
+    }
+    .ci {
+      flex: none;
+      width: 20px;
+      text-align: center;
+      font-size: 14px;
+    }
+         /* ===== Export buttons ===== */
+    .card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .card-head h3 { margin: 0; }
+    .export { display: flex; gap: 8px; }
+    .xbtn {
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #1d4ed8;
+      background: #eff6ff;
+      border: 1px solid #93c5fd;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background .2s, color .2s, transform .15s;
+    }
+    .xbtn:hover { background: #2563eb; color: #fff; transform: translateY(-1px); }
+
+    /* ===== PDF / Print පෙනුම ===== */
+    @page { size: A4 landscape; margin: 10mm; }
+    @media print {
+      * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      html, body { background: #fff !important; }
+      html::before, html::after, body::before, body::after,
+      .layout::before, .layout::after,
+      .site-footer, .clock, #resetBtn, .export { display: none !important; }
+      body { display: block !important; min-height: 0 !important; padding: 0 !important; overflow: visible !important; }
+      .layout { margin: 0 !important; }
+      .card, .kpi { box-shadow: none !important; transform: none !important; }
+      #kpis, .right > .card { margin: 0 0 10px 0 !important; }
+      #inputs { margin: 0 !important; }
+    }       
+            </style>
+</head>
+<body>
+     <header class="top">
+    <img src="logo.png" alt="IMO Chicken &amp; Agro logo" class="logo"
+         onerror="this.style.display='none'">
+    <div>
+      <div class="company">Imo Chicken &amp; Agro (Pvt) Ltd</div>
+      <h1>Master Production BOM &amp; Portion Yield Calculator</h1>
+    </div>
+    <div class="clock">
+      <div class="clock-row"><span class="ci">🕒</span><span id="clockTime">--:--:--</span></div>
+      <div class="clock-row"><span class="ci">📅</span><span id="clockDate">--</span></div>
+    </div>
+     </header>
+
+  <div class="layout">
+
+        <div class="left">
+
+      <button id="resetBtn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="1 4 1 10 7 10"></polyline>
+          <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+        </svg>
+        Reset
+      </button>
+
+      <div id="inputs"></div>
+
+    </div>
+      
+    <div class="right">
+      <div id="kpis"></div>
+
+      <div class="card">
+        <div class="card-head">
+          <h3>Portion Breakdown (kg)</h3>
+          <div class="export">
+            <button class="xbtn" id="csvBtn">⬇ CSV</button>
+            <button class="xbtn" id="pdfBtn">⬇ PDF</button>
+          </div>
+        </div>
+          <div style="overflow-x:auto"><table id="tbl"></table></div>
+      </div>
+    </div>
+
+  </div>
+  <footer class="site-footer">
+    <span class="marquee">Copyright &copy; 2026 | MIS Department | All Rights Reserved</span>
+  </footer>
+     <script>
+    const PORTIONS = [
+      { name: "Chicken Portion",      yield: 80, liveWeight: 0,   birds: 0 },
+      { name: "Portion Back Quarter", yield: 80, liveWeight: 0, birds: 0 },
+      { name: "Portion Legs",         yield: 80, liveWeight: 0, birds: 0 }
+    ];
+
+    const ITEMS = [
+      ["Breast",          33,  33,  33 ],
+      ["Back Quarter",    0,   32,  0  ],
+      ["Legs",            0,   0,   26 ],
+      ["Thigh",           14,  0,   0  ],
+      ["Drumstick",       12,  0,   0  ],
+      ["Wings",           9,   0,   0  ],
+      ["Winglet",         0,   4.5, 4.5],
+      ["Middle Wing",     0,   3.4, 3.4],
+      ["Wing Tip",        0,   1.1, 1.1],
+      ["Off cut",         16,  10,  16 ],
+      ["Neck",            3,   3,   3  ],
+      ["Skin",            4,   4,   4  ],
+      ["Liver & Heart",   3,   3,   3  ],
+      ["Gizzard",         1.5, 1.5, 1.5],
+      ["Pro-ventricular", 0.3, 0.3, 0.3],
+      ["Fat",             4.2, 4.2, 4.2]
+    ];
+        const KPI_ICONS = {
+      "Total Birds":             "🐔",
+      "Total Live Weight (kg)":  "⚖️",
+      "Total Dress Weight (kg)": "🍗",
+      "Breast Total (kg)":       "🥩",
+      "Avg Yield":               "🎯"
+    };    
+    const ICONS = {
+      "Breast":          "🥩",
+      "Back Quarter":    "🦴",
+      "Legs":            "🍗",
+      "Thigh":           "🍗",
+      "Drumstick":       "🍗",
+      "Wings":           "🪶",
+      "Winglet":         "🪶",
+      "Middle Wing":     "🪶",
+      "Wing Tip":        "🪶",
+      "Off cut":         "🔪",
+      "Neck":            "🦴",
+      "Skin":            "🟡",
+      "Liver & Heart":   "🫀",
+      "Gizzard":         "🫘",
+      "Pro-ventricular": "🌰",
+      "Fat":             "🧈"
+    };
+
+    const fmt  = n => n.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    const fmt0 = n => n.toLocaleString();
+
+    const inputsDiv = document.getElementById("inputs");
+
+    PORTIONS.forEach((p, i) => {
+      inputsDiv.innerHTML += `
+        <div class="card">
+          <h3>${p.name}</h3>
+          <label>Yield % <input type="number" data-i="${i}" data-key="yield" value="${p.yield}"></label>
+          <label>Live Weight (kg) <input type="number" step="0.01" data-i="${i}" data-key="liveWeight" value="${p.liveWeight}"></label>
+          <label>No. of Birds <input type="number" data-i="${i}" data-key="birds" value="${p.birds}"></label>
+          <label>Dress Weight (kg) <b id="dw${i}"></b></label>
+        </div>`;
+    });
+
+    function render() {
+      const dressWeights = PORTIONS.map(p => p.liveWeight * (p.yield / 100) * p.birds);
+
+      dressWeights.forEach((dw, i) => {
+        document.getElementById("dw" + i).textContent = fmt(dw);
+      });
+
+      let html = "<tr><th>Item</th>";
+      PORTIONS.forEach(p => { html += `<th>${p.name}</th>`; });
+      html += "<th>Total</th></tr>";
+
+      ITEMS.forEach(item => {
+         html += `<tr><td><span class="ic">${ICONS[item[0]] || "•"}</span>${item[0]}</td>`;
+        let total = 0;
+        dressWeights.forEach((dw, c) => {
+          const kg = dw * item[c + 1] / 100;
+          total += kg;
+          html += `<td>${fmt(kg)}</td>`;
+        });
+        html += `<td>${fmt(total)}</td></tr>`;
+      });
+
+      const grand = dressWeights.reduce((a, b) => a + b, 0);
+      html += `<tr class="total"><td>Total</td>`
+            + dressWeights.map(d => `<td>${fmt(d)}</td>`).join("")
+            + `<td>${fmt(grand)}</td></tr>`;
+
+      const totalBirds = PORTIONS.reduce((s, p) => s + p.birds, 0);
+      const totalLive  = PORTIONS.reduce((s, p) => s + p.liveWeight * p.birds, 0);
+      const breast     = dressWeights.reduce((s, dw, c) => s + dw * ITEMS[0][c + 1] / 100, 0);
+      const avgYield   = totalLive ? grand / totalLive * 100 : 0;
+
+      const kpis = [
+        ["Total Birds", fmt0(totalBirds)],
+        ["Total Live Weight (kg)", fmt(totalLive)],
+        ["Total Dress Weight (kg)", fmt(grand)],
+        ["Breast Total (kg)", fmt(breast)],
+        ["Avg Yield", fmt(avgYield) + "%"]
+      ];
+      document.getElementById("kpis").innerHTML = kpis
+        .map(k => `<div class="kpi">
+                     <div class="kic">${KPI_ICONS[k[0]] || "•"}</div>
+                     <div class="kt"><b>${k[1]}</b><span>${k[0]}</span></div>
+                   </div>`)
+        .join("");
+
+      document.getElementById("tbl").innerHTML = html;
+    }
+
+    inputsDiv.addEventListener("input", e => {
+      const t = e.target;
+      PORTIONS[t.dataset.i][t.dataset.key] = parseFloat(t.value) || 0;
+      render();
+    });
+
+    render();
+        document.getElementById("resetBtn").addEventListener("click", () => {
+      // data එකේ live weight සහ birds 0 කරන්න (yield අත නොතියා)
+      PORTIONS.forEach(p => {
+        p.liveWeight = 0;
+        p.birds = 0;
+      });
+
+      // screen එකේ input boxes හිස් කරන්න (yield boxes ඒ විදියටම)
+      document.querySelectorAll("#inputs input").forEach(inp => {
+        if (inp.dataset.key === "liveWeight" || inp.dataset.key === "birds") {
+          inp.value = "";
+        }
+      });
+
+      render();
+    });
+        // Footer: sentence එක repeat කරලා screen එක පුරවනවා, වේගය px/s වලින් සමානයි
+      // Live time + date
+    function tickClock() {
+      const now = new Date();
+      document.getElementById("clockTime").textContent =
+        now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+      const dd = String(now.getDate()).padStart(2, "0");
+      const mm = String(now.getMonth() + 1).padStart(2, "0");
+      document.getElementById("clockDate").textContent = `${dd}-${mm}-${now.getFullYear()}`;    }
+    tickClock();
+    setInterval(tickClock, 1000);
+      // ===== CSV download =====
+    function todayStr() {
+      const n = new Date();
+      return String(n.getDate()).padStart(2, "0") + "-" +
+             String(n.getMonth() + 1).padStart(2, "0") + "-" + n.getFullYear();
+    }
+
+    document.getElementById("csvBtn").addEventListener("click", () => {
+      const dress = PORTIONS.map(p => p.liveWeight * (p.yield / 100) * p.birds);
+      const q = v => `"${String(v).replace(/"/g, '""')}"`;
+      const rows = [];
+
+      rows.push(["Imo Chicken & Agro (Pvt) Ltd"]);
+      rows.push(["Master Production BOM & Portion Yield Calculator"]);
+      rows.push(["Date", todayStr()]);
+      rows.push([]);
+      rows.push(["Inputs", ...PORTIONS.map(p => p.name)]);
+      rows.push(["Yield %",           ...PORTIONS.map(p => p.yield)]);
+      rows.push(["Live Weight (kg)",  ...PORTIONS.map(p => p.liveWeight)]);
+      rows.push(["No. of Birds",      ...PORTIONS.map(p => p.birds)]);
+      rows.push(["Dress Weight (kg)", ...dress.map(d => d.toFixed(2))]);
+      rows.push([]);
+      rows.push(["Item", ...PORTIONS.map(p => p.name + " (kg)"), "Total (kg)"]);
+
+      ITEMS.forEach(item => {
+        const kgs = dress.map((dw, c) => dw * item[c + 1] / 100);
+        const total = kgs.reduce((a, b) => a + b, 0);
+        rows.push([item[0], ...kgs.map(k => k.toFixed(2)), total.toFixed(2)]);
+      });
+      const grand = dress.reduce((a, b) => a + b, 0);
+      rows.push(["Total", ...dress.map(d => d.toFixed(2)), grand.toFixed(2)]);
+
+      const csv = "\ufeff" + rows.map(r => r.map(q).join(",")).join("\r\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "Portion_Yield_" + todayStr() + ".csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(a.href);
+    });
+
+    // ===== PDF (print -> Save as PDF) =====
+    document.getElementById("pdfBtn").addEventListener("click", () => {
+      const old = document.title;
+      document.title = "Portion_Yield_" + todayStr();   // PDF file නම
+      window.print();
+      document.title = old;
+    });
+  </script>
+</body>
+</html>
